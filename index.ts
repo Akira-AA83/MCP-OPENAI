@@ -24,9 +24,19 @@ const openai = new OpenAI({
     apiKey: OPENAI_API_KEY
 });
 
-// Define supported models
-const SUPPORTED_MODELS = ["gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"] as const;
-const DEFAULT_MODEL = "gpt-4o" as const;
+// Define supported models — extended for GPT-5 and GPT-6 Astra
+const SUPPORTED_MODELS = [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "o1-preview",
+    "o1-mini",
+    "gpt-5",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "gpt-6-astra",
+] as const;
+const DEFAULT_MODEL = "gpt-6-astra" as const;
 type SupportedModel = typeof SUPPORTED_MODELS[number];
 
 // Define available tools
@@ -95,13 +105,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<{
         case "openai_chat": {
             try {
                 // Parse request arguments
-                const { messages: rawMessages, model } = request.params.arguments as {
+                const { messages: rawMessages, model: requestedModel } = request.params.arguments as {
                     messages: Array<{ role: string; content: string }>;
                     model?: SupportedModel;
                 };
+                const model = requestedModel ?? DEFAULT_MODEL;
 
                 // Validate model
-                if (!SUPPORTED_MODELS.includes(model!)) {
+                if (!SUPPORTED_MODELS.includes(model)) {
                     throw new Error(`Unsupported model: ${model}. Must be one of: ${SUPPORTED_MODELS.join(", ")}`);
                 }
 
@@ -114,7 +125,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<{
                 // Call OpenAI API with fixed temperature
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: model!
+                    model
                 });
 
                 // Return the response
