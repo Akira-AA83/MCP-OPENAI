@@ -25,7 +25,7 @@ this server (stdio MCP)
     │  loop:  OpenAI Responses API ──function_call──▶ forward to the owning MCP server
     │                              ◀──function_call_output──
     ▼
-final verdict + trace (tool calls, tokens, cost estimate) back to Claude
+final verdict + trace (tool calls, tokens) back to Claude
 ```
 
 Child MCP servers are connected lazily on the first `astra_investigate` call, so `openai_chat` keeps working even when, say, the Unreal Editor is closed. Servers that fail to connect are skipped and listed as `unavailable` in the trace.
@@ -72,7 +72,7 @@ The answer ends with a trace like:
 
 ```text
 Astra trace: model=gpt-6-astra, servers=unreal-mcp, perplexity
-Tokens: 73430 in (59664 cached) / 890 out (~$0.779 before cache discount)
+Tokens: 73430 in (59664 cached) / 890 out
 Tool calls (7):
 - unreal-mcp__list_toolsets {}
 - unreal-mcp__call_tool {"toolset_name":"PCGToolset.PCGToolset","tool_name":"UpdateNode",...}
@@ -87,13 +87,13 @@ The default is **never** the expensive model: ask for `deep` explicitly.
 |---|---|---|
 | `fast` | `gpt-5-mini` | Trivial lookups. Noticeably less reliable on facts |
 | `reason` (default) | `gpt-5` | Most checks and reviews |
-| `deep` | `gpt-6-astra` | Critical audits. $10 / $50 per million input / output tokens |
+| `deep` | `gpt-6-astra` | Critical audits. Much slower and more expensive than the other tiers |
 
 `model` accepts any of these, all verified on both the Chat Completions and the Responses API with function calling:
 
 `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5`, `gpt-5-mini`, `o3`, `o4-mini`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4o`, `gpt-4o-mini`
 
-Tiers and the model list live in [`src/models.ts`](src/models.ts). Verify a model before adding it. The cost estimate in the trace is only shown for models with a known price.
+Tiers and the model list live in [`src/models.ts`](src/models.ts). Verify a model before adding it.
 
 ## What the agent may do
 
@@ -177,19 +177,6 @@ Keep the server name `openai`, or set `ASTRA_SELF_NAME` to the name you use: the
 | `ASTRA_CLAUDE_LOCK_TTL_MS` | `120000` | Expiry of Claude's per-call lock, in case PostToolUse never fires |
 | `ASTRA_LOCK_DIR` | `~/.astra-mcp-locks` | Lock directory, shared by server and hook |
 
-## Costs
-
-Each round trip re-sends the whole history, so cost grows with the number of tool calls. OpenAI caches the stable prefix (instructions, tool schemas, earlier turns): in practice 80–85% of input tokens are served from the cache.
-
-Measured with `gpt-6-astra` on Unreal PCG tasks:
-
-| Task | Time | Tool calls | Input tokens (cached) | List-price estimate |
-|---|---|---|---|---|
-| Read-only graph audit | 82 s | 20 | 205k (84%) | ~$2.2 before cache discount |
-| Change + restore one property | 32 s | 7 | 73k (81%) | ~$0.8 before cache discount |
-
-Use `reason` (the default) unless the task really needs `deep`.
-
 ## Limitations
 
 - Servers that authenticate through Claude Code's own OAuth (e.g. Atlassian) can't be reused by the agent and are skipped.
@@ -210,7 +197,7 @@ npm run watch    # rebuild on change
 | `src/toolBridge.ts` | Aggregates child tools, naming, policy, result truncation |
 | `src/childManager.ts` | Connects to child MCP servers (stdio / HTTP) |
 | `src/mcpConfig.ts` | Reads `.mcp.json`, excludes this server |
-| `src/models.ts` | Verified models, tiers, prices |
+| `src/models.ts` | Verified models and tiers |
 | `src/lock.ts` | Semaphore shared by the server and the hook |
 | `hooks/mcp-lock-hook.mjs` | Claude Code hook enforcing the semaphore |
 
