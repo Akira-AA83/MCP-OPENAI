@@ -30,6 +30,13 @@ final verdict + trace (tool calls, tokens, cost estimate) back to Claude
 
 Child MCP servers are connected lazily on the first `astra_investigate` call, so `openai_chat` keeps working even when, say, the Unreal Editor is closed. Servers that fail to connect are skipped and listed as `unavailable` in the trace.
 
+Every investigation re-checks the servers, so you can open or close the Unreal Editor at any time without restarting anything:
+
+- a server that was unavailable is retried, and picked up as soon as it is running;
+- an already connected server is pinged first; if it stopped answering (e.g. the editor was closed and reopened, which invalidates the old session), the stale connection is dropped and a new one is opened.
+
+A server that goes down *during* an investigation makes the remaining calls fail; the agent sees the errors and reports them.
+
 ## Tools
 
 ### `openai_chat`

@@ -5,6 +5,7 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { loadChildServers, type ChildServerConfig } from "./mcpConfig.js";
 
 const CONNECT_TIMEOUT_MS = 30_000;
+const PING_TIMEOUT_MS = 3_000;
 
 // Connected child clients, keyed by server name. Populated lazily on first use.
 const clients = new Map<string, Client>();
@@ -36,15 +37,33 @@ async function connect(config: ChildServerConfig): Promise<Client> {
 
 export type ConnectReport = { connected: string[]; failed: Array<{ name: string; error: string }> };
 
-// Connects to every configured server not already connected. Failures are reported, not thrown.
+// True if an already connected client still answers. HTTP transports are never told when the
+// server goes away (e.g. Unreal Editor closed and reopened), so a stale session is only found by asking.
+async function isAlive(client: Client): Promise<boolean> {
+    try {
+        await client.ping({ timeout: PING_TIMEOUT_MS });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// Connects to every configured server, reconnecting stale clients. Failures are reported, not thrown,
+// and never cached: the next investigation retries, so a server started later is picked up.
 export async function ensureChildren(): Promise<ConnectReport> {
     const report: ConnectReport = { connected: [], failed: [] };
     const configs = loadChildServers();
 
     await Promise.all(configs.map(async config => {
-        if (clients.has(config.name)) {
-            report.connected.push(config.name);
-            return;
+        const existing = clients.get(config.name);
+        if (existing) {
+            if (await isAlive(existing)) {
+                report.connected.push(config.name);
+                return;
+            }
+            console.error(`[astra] "${config.name}" stopped answering, reconnecting`);
+            clients.delete(config.name);
+            await existing.close().catch(() => {});
         }
         try {
             clients.set(config.name, await connect(config));
