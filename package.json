@@ -1,27 +1,31 @@
 {
-  "name": "@mzxrai/mcp-openai",
-  "version": "0.1.1",
-  "description": "MCP server for simple interaction with OpenAI API",
+  "name": "mcp-openai-astra",
+  "version": "0.2.0",
+  "description": "MCP server giving Claude Code an independent second opinion from OpenAI models: openai_chat plus an autonomous agent (astra_investigate) that inspects the project through its MCP servers",
   "license": "MIT",
-  "author": "mzxrai",
-  "homepage": "https://github.com/mzxrai/mcp-openai",
+  "author": "Augusto Angeletti",
+  "contributors": [
+    "mzxrai (original mcp-openai)"
+  ],
+  "homepage": "https://github.com/Akira-AA83/MCP-OPENAI",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mzxrai/mcp-openai.git"
+    "url": "https://github.com/Akira-AA83/MCP-OPENAI.git"
   },
-  "bugs": "https://github.com/mzxrai/mcp-openai/issues",
+  "bugs": "https://github.com/Akira-AA83/MCP-OPENAI/issues",
   "type": "module",
   "bin": {
-    "mcp-server-webresearch": "dist/index.js"
+    "mcp-openai-astra": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "hooks"
   ],
   "scripts": {
     "build": "tsc && shx chmod +x dist/*.js",
     "prepare": "npm run build",
     "watch": "tsc --watch",
-    "dev": "tsx watch index.ts"
+    "dev": "tsx watch src/index.ts"
   },
   "publishConfig": {
     "access": "public"
@@ -29,15 +33,19 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
+    "claude-code",
     "openai",
-    "o1",
-    "ai"
+    "gpt-6-astra",
+    "agent",
+    "second-opinion",
+    "unreal-engine"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.0.1",
-    "openai": "^4.76.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "openai": "^7.20.0"
   },
   "devDependencies": {
+    "@types/node": "^22.20.4",
     "shx": "^0.3.4",
     "tsx": "^4.19.2",
     "typescript": "^5.6.2"
